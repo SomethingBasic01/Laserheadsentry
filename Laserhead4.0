@@ -84,10 +84,11 @@ local buttonRemove = canvas.addRectangle(10, 40, 100, 20, 0xFF0000)
 local buttonToggle = canvas.addRectangle(10, 70, 100, 20, 0x0000FF)
 local buttonStatus = canvas.addRectangle(10, 100, 100, 20, 0xFFFFFF)
 
-buttonAdd.addText(15, 15, "Add Entity")
-buttonRemove.addText(15, 45, "Remove Entity")
-buttonToggle.addText(15, 75, "Toggle Sentry")
-buttonStatus.addText(15, 105, "Show Status")
+-- Adding text separately
+canvas.addText(15, 15, "Add Entity")
+canvas.addText(15, 45, "Remove Entity")
+canvas.addText(15, 75, "Toggle Sentry")
+canvas.addText(15, 105, "Show Status")
 
 local function checkAndAttack()
     while true do
