@@ -1,0 +1,95 @@
+local neuralInterface = peripheral.find("neuralInterface")
+if not neuralInterface then
+    error("Must have a neural interface", 0)
+end
+
+print("Neural Interface found")
+
+if not neuralInterface.hasModule("plethora:glasses") then
+    error("Cannot find overlay glasses module", 0)
+end
+
+print("All required modules found in neural interface")
+
+-- Get the canvas from the neural interface
+local canvas = neuralInterface.canvas()
+canvas.clear() -- Clear any previous drawings on the canvas
+
+-- Create a function to handle text adding correctly
+local function addTextToCanvas(canvas, x, y, text)
+    local textElement = canvas.addText({x, y}, text)
+    if not textElement then
+        error("Failed to add text to canvas", 0)
+    end
+    return textElement
+end
+
+-- Function to fire the laser
+local function fire(entity)
+    local x, y, z = entity.x, entity.y, entity.z
+    local pitch = -math.atan2(y, math.sqrt(x * x + z * z))
+    local yaw = math.atan2(-x, z)
+
+    neuralInterface.fire(math.deg(yaw), math.deg(pitch), 5)
+    sleep(0.2)
+end
+
+-- Initialize tracked entities
+local trackedEntities = { "corruption_avatar", "Creeper", "Zombie", "Skeleton" }
+local trackedEntitiesLookup = {}
+for i = 1, #trackedEntities do
+    trackedEntitiesLookup[trackedEntities[i]] = true
+end
+
+-- Functions for user interaction
+local function addEntity(entity)
+    trackedEntitiesLookup[entity] = true
+end
+
+local function removeEntity(entity)
+    trackedEntitiesLookup[entity] = nil
+end
+
+-- Function to update the glasses display
+local function updateDisplay()
+    canvas.clear()
+    local y = 0
+    for entity, _ in pairs(trackedEntitiesLookup) do
+        addTextToCanvas(canvas, 5, y, entity).setScale(1)
+        y = y + 10
+    end
+end
+
+-- Function to handle button click events
+local function handleButtonClick(x, y)
+    if x >= 5 and x <= 105 and y >= 10 and y <= 30 then
+        removeEntity("Creeper")
+    elseif x >= 5 and x <= 105 and y >= 40 and y <= 60 then
+        addEntity("Creeper")
+    end
+    updateDisplay()
+end
+
+-- Draw initial buttons
+canvas.addRectangle(5, 10, 100, 20, 0xFF0000FF)
+addTextToCanvas(canvas, 10, 15, "Remove Creeper")
+canvas.addRectangle(5, 40, 100, 20, 0xFF00FF00)
+addTextToCanvas(canvas, 10, 45, "Add Creeper")
+
+-- Main loop
+while true do
+    -- Sense entities and fire at tracked entities
+    local entities = neuralInterface.sense()
+    for i = 1, #entities do
+        local entity = entities[i]
+        if trackedEntitiesLookup[entity.name] then
+            fire(entity)
+        end
+    end
+
+    -- Handle button clicks (example coordinates)
+    local event, side, x, y = os.pullEvent("monitor_touch")
+    handleButtonClick(x, y)
+
+    sleep(1)
+end
