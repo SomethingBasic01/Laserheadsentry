@@ -74,6 +74,7 @@ local function displayStatus()
     end
 end
 
+-- Create buttons on the overlay glasses
 local buttonAdd = glasses.addBox(10, 10, 100, 20, 0x00FF00, 0.5)
 local buttonRemove = glasses.addBox(10, 40, 100, 20, 0xFF0000, 0.5)
 local buttonToggle = glasses.addBox(10, 70, 100, 20, 0x0000FF, 0.5)
