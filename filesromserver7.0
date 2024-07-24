@@ -1,3 +1,6 @@
+local serverID = os.getComputerID()
+print("Server ID:", serverID)
+
 local serverDir = "server_files"
 
 -- Initialize the server and create necessary directories
@@ -7,7 +10,7 @@ end
 
 -- Handle upload requests
 local function handleUpload(senderID, message)
-    print("Handling upload request")
+    print("Handling upload request from ID:", senderID)
     local fileName, fileContent = message:match("([^,]+),(.+)")
     if not fileName or not fileContent then
         print("Error: Invalid upload message format")
@@ -60,8 +63,8 @@ local function startServer()
     print("Server initialized. Ready to receive files.")
     
     while true do
-        local event, senderID, protocol, message = os.pullEvent("modem_message")
-        print("Received event:", event, protocol)
+        local event, senderID, message, protocol = os.pullEvent("rednet_message")
+        print("Received event:", event, "Protocol:", protocol, "From ID:", senderID)
         if protocol == "upload" then
             handleUpload(senderID, message)
         elseif protocol == "download" then
