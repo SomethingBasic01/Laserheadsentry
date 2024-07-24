@@ -1,0 +1,86 @@
+-- Upload a program to the server
+local function uploadProgram(fileName)
+    local filePath = fs.combine("", fileName)
+    if not fs.exists(filePath) then
+        print("File not found:", fileName)
+        return
+    end
+
+    local file = fs.open(filePath, "r")
+    local fileContent = file.readAll()
+    file.close()
+
+    rednet.open("right")
+    rednet.broadcast(fileName .. "," .. fileContent, "upload")
+    
+    local event, senderID, protocol, response = os.pullEvent("modem_message")
+    if protocol == "upload_response" then
+        print(response)
+    end
+    
+    rednet.close("right")
+    print("Uploaded file:", fileName)
+end
+
+-- Download a program from the server
+local function downloadProgram(fileName)
+    rednet.open("right")
+    rednet.broadcast(fileName, "download")
+    
+    local event, senderID, protocol, fileContent = os.pullEvent("modem_message")
+    if protocol == "file_content" then
+        if fileContent ~= "File not found" then
+            local filePath = fs.combine("", fileName)
+            local file = fs.open(filePath, "w")
+            file.write(fileContent)
+            file.close()
+            
+            print("Downloaded file:", fileName)
+        else
+            print("File not found on server")
+        end
+    end
+    
+    rednet.close("right")
+end
+
+-- List available files on the server
+local function listFiles()
+    rednet.open("right")
+    rednet.broadcast("", "list_files")
+    
+    local event, senderID, protocol, fileList = os.pullEvent("modem_message")
+    if protocol == "file_list" then
+        local files = textutils.unserialize(fileList)
+        print("Available files:")
+        for _, file in ipairs(files) do
+            print(file)
+        end
+    end
+    
+    rednet.close("right")
+end
+
+-- User interface to choose between upload, download, and listing files
+local function main()
+    print("Do you want to (1) upload, (2) download, or (3) list available files?")
+    local choice = read()
+    
+    if choice == "1" then
+        print("Enter the file name to upload:")
+        local fileName = read()
+        
+        uploadProgram(fileName)
+    elseif choice == "2" then
+        print("Enter the file name to download:")
+        local fileName = read()
+        
+        downloadProgram(fileName)
+    elseif choice == "3" then
+        listFiles()
+    else
+        print("Invalid choice")
+    end
+end
+
+main()
