@@ -8,14 +8,6 @@ if not modules.hasModule("plethora:sensor") then error("Cannot find entity senso
 if not modules.hasModule("plethora:glasses") then error("Cannot find overlay glasses", 0) end
 
 -- Try to find the glasses peripheral separately to ensure it's correctly identified
-local interface = peripheral.wrap("right")
-local glasses = peripheral.find("plethora:glasses")
-if not glasses then
-    error("Must have overlay glasses connected", 0)
-end
-
-print("All required peripherals and modules are found.")
-
 local function fire(entity)
     local x, y, z = entity.x, entity.y, entity.z
     local pitch = -math.atan2(y, math.sqrt(x * x + z * z))
