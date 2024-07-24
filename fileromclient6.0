@@ -11,21 +11,16 @@ local function uploadProgram(fileName)
     file.close()
 
     rednet.open("right")
-    local serverID = rednet.lookup("cloudserver")
-    if serverID then
-        rednet.send(serverID, fileName .. "," .. fileContent, "upload")
-        print("Sent upload request for file:", fileName)
+    rednet.broadcast(fileName .. "," .. fileContent, "upload")
+    print("Sent upload request for file:", fileName)
 
-        while true do
-            local event, senderID, protocol, message = os.pullEvent("modem_message")
-            print("Received event:", event, protocol)
-            if senderID == serverID and protocol == "upload_response" then
-                print(message)
-                break
-            end
+    while true do
+        local event, senderID, protocol, message = os.pullEvent("modem_message")
+        print("Received event:", event, protocol)
+        if protocol == "upload_response" then
+            print(message)
+            break
         end
-    else
-        print("No server found")
     end
     
     rednet.close("right")
@@ -34,30 +29,25 @@ end
 -- Download a program from the server
 local function downloadProgram(fileName)
     rednet.open("right")
-    local serverID = rednet.lookup("cloudserver")
-    if serverID then
-        rednet.send(serverID, fileName, "download")
-        print("Requested download for file:", fileName)
+    rednet.broadcast(fileName, "download")
+    print("Requested download for file:", fileName)
 
-        while true do
-            local event, senderID, protocol, message = os.pullEvent("modem_message")
-            print("Received event:", event, protocol)
-            if senderID == serverID and protocol == "file_content" then
-                if message ~= "File not found" then
-                    local filePath = fs.combine("", fileName)
-                    local file = fs.open(filePath, "w")
-                    file.write(message)
-                    file.close()
-                    
-                    print("Downloaded file:", fileName)
-                else
-                    print("File not found on server")
-                end
-                break
+    while true do
+        local event, senderID, protocol, message = os.pullEvent("modem_message")
+        print("Received event:", event, protocol)
+        if protocol == "file_content" then
+            if message ~= "File not found" then
+                local filePath = fs.combine("", fileName)
+                local file = fs.open(filePath, "w")
+                file.write(message)
+                file.close()
+                
+                print("Downloaded file:", fileName)
+            else
+                print("File not found on server")
             end
+            break
         end
-    else
-        print("No server found")
     end
     
     rednet.close("right")
@@ -66,29 +56,24 @@ end
 -- List available files on the server
 local function listFiles()
     rednet.open("right")
-    local serverID = rednet.lookup("cloudserver")
-    if serverID then
-        rednet.send(serverID, "", "list_files")
-        print("Requested list of files")
+    rednet.broadcast("", "list_files")
+    print("Requested list of files")
 
-        while true do
-            local event, senderID, protocol, message = os.pullEvent("modem_message")
-            print("Received event:", event, protocol)
-            if senderID == serverID and protocol == "file_list" then
-                local files = {}
-                for file in string.gmatch(message, '([^,]+)') do
-                    table.insert(files, file)
-                end
-                
-                print("Available files:")
-                for _, file in ipairs(files) do
-                    print(file)
-                end
-                break
+    while true do
+        local event, senderID, protocol, message = os.pullEvent("modem_message")
+        print("Received event:", event, protocol)
+        if protocol == "file_list" then
+            local files = {}
+            for file in string.gmatch(message, '([^,]+)') do
+                table.insert(files, file)
             end
+            
+            print("Available files:")
+            for _, file in ipairs(files) do
+                print(file)
+            end
+            break
         end
-    else
-        print("No server found")
     end
     
     rednet.close("right")
