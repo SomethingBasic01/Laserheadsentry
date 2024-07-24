@@ -1,0 +1,149 @@
+-- Upload a program to the server
+local function uploadProgram(fileName)
+    local filePath = fs.combine("", fileName)
+    if not fs.exists(filePath) then
+        print("File not found:", fileName)
+        return
+    end
+
+    local file = fs.open(filePath, "r")
+    local fileContent = file.readAll()
+    file.close()
+
+    rednet.open("right")
+    rednet.broadcast(fileName .. "," .. fileContent, "upload")
+    print("Sent upload request for file:", fileName)
+
+    while true do
+        local event, senderID, message, protocol = os.pullEvent("rednet_message")
+        print("Received event:", event, "Protocol:", protocol, "From ID:", senderID)
+        if protocol == "upload_response" then
+            print(message)
+            break
+        end
+    end
+    
+    rednet.close("right")
+end
+
+-- Download a program from the server
+local function downloadProgram(fileName)
+    rednet.open("right")
+    rednet.broadcast(fileName, "download")
+    print("Requested download for file:", fileName)
+
+    while true do
+        local event, senderID, message, protocol = os.pullEvent("rednet_message")
+        print("Received event:", event, "Protocol:", protocol, "From ID:", senderID)
+        if protocol == "file_content" then
+            if message ~= "File not found" then
+                local filePath = fs.combine("", fileName)
+                local file = fs.open(filePath, "w")
+                file.write(message)
+                file.close()
+                
+                print("Downloaded file:", fileName)
+            else
+                print("File not found on server")
+            end
+            break
+        end
+    end
+    
+    rednet.close("right")
+end
+
+-- List available files on the server
+local function listFiles()
+    rednet.open("right")
+    rednet.broadcast("", "list_files")
+    print("Requested list of files")
+
+    while true do
+        local event, senderID, message, protocol = os.pullEvent("rednet_message")
+        print("Received event:", event, "Protocol:", protocol, "From ID:", senderID)
+        if protocol == "file_list" then
+            local files = {}
+            for file in string.gmatch(message, '([^,]+)') do
+                table.insert(files, file)
+            end
+            
+            print("Available files:")
+            for _, file in ipairs(files) do
+                print(file)
+            end
+            break
+        end
+    end
+    
+    rednet.close("right")
+end
+
+-- Delete a file on the server
+local function deleteFile(fileName)
+    rednet.open("right")
+    rednet.broadcast(fileName, "delete")
+    print("Requested delete for file:", fileName)
+
+    while true do
+        local event, senderID, message, protocol = os.pullEvent("rednet_message")
+        print("Received event:", event, "Protocol:", protocol, "From ID:", senderID)
+        if protocol == "delete_response" then
+            print(message)
+            break
+        end
+    end
+    
+    rednet.close("right")
+end
+
+-- Display help information
+local function showHelp()
+    print("Help Menu")
+    print("1. Upload a file: Allows you to upload a file to the server.")
+    print("2. Download a file: Allows you to download a file from the server.")
+    print("3. List available files: Shows all files available on the server.")
+    print("4. Delete a file: Removes a file from the server.")
+    print("5. Help: Shows this help menu.")
+    print("6. Exit: Closes the program.")
+end
+
+-- User interface to choose between upload, download, and listing files
+local function main()
+    while true do
+        print("What do you want to do?")
+        print("(1) Upload a file")
+        print("(2) Download a file")
+        print("(3) List available files")
+        print("(4) Delete a file")
+        print("(5) Help")
+        print("(6) Exit")
+        
+        local choice = tonumber(read())
+        
+        if choice == 1 then
+            print("Enter the file name to upload:")
+            local fileName = read()
+            uploadProgram(fileName)
+        elseif choice == 2 then
+            print("Enter the file name to download:")
+            local fileName = read()
+            downloadProgram(fileName)
+        elseif choice == 3 then
+            listFiles()
+        elseif choice == 4 then
+            print("Enter the file name to delete:")
+            local fileName = read()
+            deleteFile(fileName)
+        elseif choice == 5 then
+            showHelp()
+        elseif choice == 6 then
+            print("Exiting program.")
+            break
+        else
+            print("Invalid choice. Please select a valid option.")
+        end
+    end
+end
+
+main()
