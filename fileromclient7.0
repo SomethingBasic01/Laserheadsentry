@@ -15,8 +15,8 @@ local function uploadProgram(fileName)
     print("Sent upload request for file:", fileName)
 
     while true do
-        local event, senderID, protocol, message = os.pullEvent("modem_message")
-        print("Received event:", event, protocol)
+        local event, senderID, message, protocol = os.pullEvent("rednet_message")
+        print("Received event:", event, "Protocol:", protocol, "From ID:", senderID)
         if protocol == "upload_response" then
             print(message)
             break
@@ -33,8 +33,8 @@ local function downloadProgram(fileName)
     print("Requested download for file:", fileName)
 
     while true do
-        local event, senderID, protocol, message = os.pullEvent("modem_message")
-        print("Received event:", event, protocol)
+        local event, senderID, message, protocol = os.pullEvent("rednet_message")
+        print("Received event:", event, "Protocol:", protocol, "From ID:", senderID)
         if protocol == "file_content" then
             if message ~= "File not found" then
                 local filePath = fs.combine("", fileName)
@@ -60,8 +60,8 @@ local function listFiles()
     print("Requested list of files")
 
     while true do
-        local event, senderID, protocol, message = os.pullEvent("modem_message")
-        print("Received event:", event, protocol)
+        local event, senderID, message, protocol = os.pullEvent("rednet_message")
+        print("Received event:", event, "Protocol:", protocol, "From ID:", senderID)
         if protocol == "file_list" then
             local files = {}
             for file in string.gmatch(message, '([^,]+)') do
