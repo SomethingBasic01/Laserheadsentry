@@ -13,9 +13,20 @@ local function uploadProgram(fileName)
     rednet.open("right")
     rednet.broadcast(fileName .. "," .. fileContent, "upload")
     
-    local event, senderID, protocol, response = os.pullEvent("modem_message")
-    if protocol == "upload_response" then
-        print(response)
+    local timeout = os.startTimer(5)  -- 5 second timeout
+    while true do
+        local event, param1, param2, param3 = os.pullEvent()
+        
+        if event == "modem_message" then
+            local senderID, protocol, response = param1, param2, param3
+            if protocol == "upload_response" then
+                print(response)
+                break
+            end
+        elseif event == "timer" and param1 == timeout then
+            print("Upload response timed out")
+            break
+        end
     end
     
     rednet.close("right")
@@ -27,17 +38,28 @@ local function downloadProgram(fileName)
     rednet.open("right")
     rednet.broadcast(fileName, "download")
     
-    local event, senderID, protocol, fileContent = os.pullEvent("modem_message")
-    if protocol == "file_content" then
-        if fileContent ~= "File not found" then
-            local filePath = fs.combine("", fileName)
-            local file = fs.open(filePath, "w")
-            file.write(fileContent)
-            file.close()
-            
-            print("Downloaded file:", fileName)
-        else
-            print("File not found on server")
+    local timeout = os.startTimer(5)  -- 5 second timeout
+    while true do
+        local event, param1, param2, param3 = os.pullEvent()
+        
+        if event == "modem_message" then
+            local senderID, protocol, fileContent = param1, param2, param3
+            if protocol == "file_content" then
+                if fileContent ~= "File not found" then
+                    local filePath = fs.combine("", fileName)
+                    local file = fs.open(filePath, "w")
+                    file.write(fileContent)
+                    file.close()
+                    
+                    print("Downloaded file:", fileName)
+                else
+                    print("File not found on server")
+                end
+                break
+            end
+        elseif event == "timer" and param1 == timeout then
+            print("Download response timed out")
+            break
         end
     end
     
@@ -49,16 +71,27 @@ local function listFiles()
     rednet.open("right")
     rednet.broadcast("", "list_files")
     
-    local event, senderID, protocol, fileList = os.pullEvent("modem_message")
-    if protocol == "file_list" then
-        local files = {}
-        for file in string.gmatch(fileList, '([^,]+)') do
-            table.insert(files, file)
-        end
+    local timeout = os.startTimer(5)  -- 5 second timeout
+    while true do
+        local event, param1, param2, param3 = os.pullEvent()
         
-        print("Available files:")
-        for _, file in ipairs(files) do
-            print(file)
+        if event == "modem_message" then
+            local senderID, protocol, fileList = param1, param2, param3
+            if protocol == "file_list" then
+                local files = {}
+                for file in string.gmatch(fileList, '([^,]+)') do
+                    table.insert(files, file)
+                end
+                
+                print("Available files:")
+                for _, file in ipairs(files) do
+                    print(file)
+                end
+                break
+            end
+        elseif event == "timer" and param1 == timeout then
+            print("List files response timed out")
+            break
         end
     end
     
