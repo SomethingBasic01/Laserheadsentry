@@ -3,17 +3,18 @@ if not modules then
     error("Must have a neural interface", 0)
 end
 
+print("Neural Interface found")
+
 if not modules.hasModule("plethora:laser") then error("Cannot find laser", 0) end
 if not modules.hasModule("plethora:sensor") then error("Cannot find entity sensor", 0) end
-if not modules.hasModule("plethora:glasses") then error("Cannot find overlay glasses", 0) end
+if not modules.hasModule("plethora:glasses") then error("Cannot find overlay glasses module", 0) end
 
--- Correctly identify the glasses peripheral
-local glasses = peripheral.find("plethora:glasses")
-if not glasses then
-    error("Must have overlay glasses connected", 0)
-end
+print("All required modules found in neural interface")
 
-print("All required peripherals and modules are found.")
+-- Use the neural interface to get the canvas
+local canvas = modules.canvas()
+
+print("Canvas initialized")
 
 local function fire(entity)
     local x, y, z = entity.x, entity.y, entity.z
@@ -77,16 +78,16 @@ local function displayStatus()
     end
 end
 
--- Create buttons on the overlay glasses
-local buttonAdd = glasses.addBox(10, 10, 100, 20, 0x00FF00, 0.5)
-local buttonRemove = glasses.addBox(10, 40, 100, 20, 0xFF0000, 0.5)
-local buttonToggle = glasses.addBox(10, 70, 100, 20, 0x0000FF, 0.5)
-local buttonStatus = glasses.addBox(10, 100, 100, 20, 0xFFFFFF, 0.5)
+-- Create buttons on the overlay glasses using the canvas
+local buttonAdd = canvas.addRectangle(10, 10, 100, 20, 0x00FF00)
+local buttonRemove = canvas.addRectangle(10, 40, 100, 20, 0xFF0000)
+local buttonToggle = canvas.addRectangle(10, 70, 100, 20, 0x0000FF)
+local buttonStatus = canvas.addRectangle(10, 100, 100, 20, 0xFFFFFF)
 
-buttonAdd.setText("Add Entity")
-buttonRemove.setText("Remove Entity")
-buttonToggle.setText("Toggle Sentry")
-buttonStatus.setText("Show Status")
+buttonAdd.addText(15, 15, "Add Entity")
+buttonRemove.addText(15, 45, "Remove Entity")
+buttonToggle.addText(15, 75, "Toggle Sentry")
+buttonStatus.addText(15, 105, "Show Status")
 
 local function checkAndAttack()
     while true do
