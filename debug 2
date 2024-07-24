@@ -1,0 +1,48 @@
+local neuralInterface = peripheral.find("neuralInterface")
+if not neuralInterface then
+    error("Must have a neural interface", 0)
+end
+
+print("Neural Interface found")
+
+if not neuralInterface.hasModule("plethora:laser") then error("Cannot find laser", 0) end
+if not neuralInterface.hasModule("plethora:sensor") then error("Cannot find entity sensor", 0) end
+if not neuralInterface.hasModule("plethora:glasses") then error("Cannot find overlay glasses module", 0) end
+
+print("All required modules found in neural interface")
+
+-- Use the neural interface to get the canvas
+local canvas = neuralInterface.canvas()
+
+print("Canvas initialized")
+
+local buttonAdd = canvas.addRectangle({10, 10}, 100, 20, 0x00FF00)
+local buttonRemove = canvas.addRectangle({10, 40}, 100, 20, 0xFF0000)
+local buttonToggle = canvas.addRectangle({10, 70}, 100, 20, 0x0000FF)
+local buttonStatus = canvas.addRectangle({10, 100}, 100, 20, 0xFFFFFF)
+
+canvas.addText({15, 15}, "Add Entity")
+canvas.addText({15, 45}, "Remove Entity")
+canvas.addText({15, 75}, "Toggle Sentry")
+canvas.addText({15, 105}, "Show Status")
+
+local function handleTouch()
+    while true do
+        local event, side, xPos, yPos = os.pullEvent("glasses_click")
+
+        -- Ensure xPos and yPos are wrapped in a table
+        local touchPos = {xPos, yPos}
+
+        if buttonAdd.contains(touchPos) then
+            print("Add Entity button clicked")
+        elseif buttonRemove.contains(touchPos) then
+            print("Remove Entity button clicked")
+        elseif buttonToggle.contains(touchPos) then
+            print("Toggle Sentry button clicked")
+        elseif buttonStatus.contains(touchPos) then
+            print("Show Status button clicked")
+        end
+    end
+end
+
+parallel.waitForAny(handleTouch)
