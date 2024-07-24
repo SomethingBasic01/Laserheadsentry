@@ -1,4 +1,3 @@
-local rednet = require("rednet")
 local serverDir = "server_files"
 
 -- Initialize the server and create necessary directories
