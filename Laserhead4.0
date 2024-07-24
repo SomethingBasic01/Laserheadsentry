@@ -12,7 +12,7 @@ if not modules.hasModule("plethora:glasses") then error("Cannot find overlay gla
 print("All required modules found in neural interface")
 
 -- Use the neural interface to get the canvas
-local canvas = modules.canvas()
+local canvas = modules.canvas2d()
 
 print("Canvas initialized")
 
@@ -85,10 +85,10 @@ local buttonToggle = canvas.addRectangle(10, 70, 100, 20, 0x0000FF)
 local buttonStatus = canvas.addRectangle(10, 100, 100, 20, 0xFFFFFF)
 
 -- Adding text separately
-canvas.addText(15, 15, "Add Entity")
-canvas.addText(15, 45, "Remove Entity")
-canvas.addText(15, 75, "Toggle Sentry")
-canvas.addText(15, 105, "Show Status")
+canvas.addText({15, 15}, "Add Entity")
+canvas.addText({15, 45}, "Remove Entity")
+canvas.addText({15, 75}, "Toggle Sentry")
+canvas.addText({15, 105}, "Show Status")
 
 local function checkAndAttack()
     while true do
