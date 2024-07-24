@@ -1,0 +1,137 @@
+local modules = peripheral.find("neuralInterface")
+if not modules then
+    error("Must have a neural interface", 0)
+end
+
+print("Neural Interface found")
+
+if not modules.hasModule("plethora:laser") then error("Cannot find laser", 0) end
+if not modules.hasModule("plethora:sensor") then error("Cannot find entity sensor", 0) end
+if not modules.hasModule("plethora:glasses") then error("Cannot find overlay glasses module", 0) end
+
+print("All required modules found in neural interface")
+
+-- Use the neural interface to get the canvas
+local canvas = modules.canvas()
+
+print("Canvas initialized")
+
+local function fire(entity)
+    local x, y, z = entity.x, entity.y, entity.z
+    local pitch = -math.atan2(y, math.sqrt(x * x + z * z))
+    local yaw = math.atan2(-x, z)
+    modules.fire(math.deg(yaw), math.deg(pitch), 5)
+    sleep(0.2)
+end
+
+local trackedEntities = { "corruption_avatar", "Creeper", "Zombie", "Skeleton" }
+local isSentryOn = true
+
+local function buildLookup(entities)
+    local lookup = {}
+    for i = 1, #entities do
+        lookup[entities[i]] = true
+    end
+    return lookup
+end
+
+local mobLookup = buildLookup(trackedEntities)
+
+local function addEntity(entity)
+    if not mobLookup[entity] then
+        table.insert(trackedEntities, entity)
+        mobLookup[entity] = true
+        print(entity .. " added to tracking list.")
+    else
+        print(entity .. " is already in the tracking list.")
+    end
+end
+
+local function removeEntity(entity)
+    if mobLookup[entity] then
+        for i = #trackedEntities, 1, -1 do
+            if trackedEntities[i] == entity then
+                table.remove(trackedEntities, i)
+            end
+        end
+        mobLookup[entity] = nil
+        print(entity .. " removed from tracking list.")
+    else
+        print(entity .. " is not in the tracking list.")
+    end
+end
+
+local function toggleSentry()
+    isSentryOn = not isSentryOn
+    if isSentryOn then
+        print("Sentry is now ON.")
+    else
+        print("Sentry is now OFF.")
+    end
+end
+
+local function displayStatus()
+    print("Sentry Status: " .. (isSentryOn and "ON" or "OFF"))
+    print("Tracked Entities: ")
+    for _, entity in ipairs(trackedEntities) do
+        print(" - " .. entity)
+    end
+end
+
+-- Create buttons on the overlay glasses using the canvas
+local buttonAdd = canvas.addRectangle(10, 10, 100, 20, 0x00FF00)
+local buttonRemove = canvas.addRectangle(10, 40, 100, 20, 0xFF0000)
+local buttonToggle = canvas.addRectangle(10, 70, 100, 20, 0x0000FF)
+local buttonStatus = canvas.addRectangle(10, 100, 100, 20, 0xFFFFFF)
+
+-- Adding text separately
+canvas.addText(15, 15, "Add Entity")
+canvas.addText(15, 45, "Remove Entity")
+canvas.addText(15, 75, "Toggle Sentry")
+canvas.addText(15, 105, "Show Status")
+
+local function checkAndAttack()
+    while true do
+        if isSentryOn then
+            local mobs = modules.sense()
+            local candidates = {}
+            for i = 1, #mobs do
+                local mob = mobs[i]
+                if mobLookup[mob.name] then
+                    candidates[#candidates + 1] = mob
+                end
+            end
+
+            if #candidates > 0 then
+                local mob = candidates[math.random(1, #candidates)]
+                fire(mob)
+            else
+                sleep(1)
+            end
+        else
+            sleep(1)
+        end
+    end
+end
+
+local function handleTouch()
+    while true do
+        local event, side, xPos, yPos = os.pullEvent("glasses_click")
+        
+        if buttonAdd.containsPoint(xPos, yPos) then
+            print("Enter entity name to add:")
+            local entity = read()
+            addEntity(entity)
+        elseif buttonRemove.containsPoint(xPos, yPos) then
+            print("Enter entity name to remove:")
+            local entity = read()
+            removeEntity(entity)
+        elseif buttonToggle.containsPoint(xPos, yPos) then
+            toggleSentry()
+        elseif buttonStatus.containsPoint(xPos, yPos) then
+            displayStatus()
+        end
+    end
+end
+
+parallel.waitForAny(checkAndAttack, handleTouch)
