@@ -51,7 +51,11 @@ local function listFiles()
     
     local event, senderID, protocol, fileList = os.pullEvent("modem_message")
     if protocol == "file_list" then
-        local files = textutils.unserialize(fileList)
+        local files = {}
+        for file in string.gmatch(fileList, '([^,]+)') do
+            table.insert(files, file)
+        end
+        
         print("Available files:")
         for _, file in ipairs(files) do
             print(file)
