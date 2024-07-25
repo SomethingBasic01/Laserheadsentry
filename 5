@@ -1,0 +1,93 @@
+-- Ensure we have the required peripherals
+local modules = peripheral.find("neuralInterface")
+if not modules then
+    error("Must have a neural interface", 0)
+end
+
+if not modules.hasModule("plethora:laser") then error("Cannot find laser", 0) end
+if not modules.hasModule("plethora:sensor") then error("Cannot find entity sensor", 0) end
+if not modules.hasModule("plethora:glasses") then error("Cannot find overlay glasses", 0) end
+
+local glasses = modules.getModule("plethora:glasses")
+
+-- Get the 2D canvas from the glasses
+local canvas = glasses.canvas2d()
+
+-- Function to add and remove entities
+local trackedEntities = {"Creeper", "Zombie"}
+local function addEntity(entity)
+    table.insert(trackedEntities, entity)
+end
+
+local function removeEntity(entity)
+    for i, e in ipairs(trackedEntities) do
+        if e == entity then
+            table.remove(trackedEntities, i)
+            break
+        end
+    end
+end
+
+-- Function to fire at entities
+local function fire(entity)
+    local x, y, z = entity.x, entity.y, entity.z
+    local pitch = -math.atan2(y, math.sqrt(x * x + z * z))
+    local yaw = math.atan2(-x, z)
+    modules.fire(math.deg(yaw), math.deg(pitch), 5)
+    sleep(0.2)
+end
+
+-- Draw UI elements
+canvas.clear()
+
+-- Title
+canvas.addText({10, 10}, "Tracked Entities:", 0xFFFFFF)
+
+-- Function to update the display of tracked entities
+local function updateEntityList()
+    canvas.clear()
+    canvas.addText({10, 10}, "Tracked Entities:", 0xFFFFFF)
+    local y = 30
+    for _, entity in ipairs(trackedEntities) do
+        canvas.addText({10, y}, entity, 0xFFFFFF)
+        y = y + 15
+    end
+
+    -- Add buttons
+    canvas.addBox(10, 300, 80, 20, 0xFFFFFF)
+    canvas.addText({15, 305}, "Add Entity", 0x000000)
+
+    canvas.addBox(100, 300, 100, 20, 0xFF0000)
+    canvas.addText({105, 305}, "Remove Entity", 0x000000)
+    
+    canvas.addBox(10, 330, 80, 20, 0x00FF00)
+    canvas.addText({15, 335}, "Scroll Up", 0x000000)
+    
+    canvas.addBox(100, 330, 100, 20, 0x00FF00)
+    canvas.addText({105, 335}, "Scroll Down", 0x000000)
+end
+
+updateEntityList()
+
+-- Handle button clicks
+while true do
+    local event, side, x, y = os.pullEvent("glasses_click")
+    if x >= 10 and x <= 90 and y >= 300 and y <= 320 then
+        -- Handle Add Entity
+        -- Code to get user input for entity name
+        -- Example entity to add
+        addEntity("Skeleton")
+        updateEntityList()
+    elseif x >= 100 and x <= 200 and y >= 300 and y <= 320 then
+        -- Handle Remove Entity
+        -- Example entity to remove
+        removeEntity("Skeleton")
+        updateEntityList()
+    elseif x >= 10 and x <= 90 and y >= 330 and y <= 350 then
+        -- Handle Scroll Up
+        -- Implement scroll up logic
+    elseif x >= 100 and x <= 200 and y >= 330 and y <= 350 then
+        -- Handle Scroll Down
+        -- Implement scroll down logic
+    end
+end
