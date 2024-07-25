@@ -1,0 +1,125 @@
+local modules = peripheral.find("neuralInterface")
+if not modules then
+    error("Must have a neural interface", 0)
+end
+
+-- We require an entity sensor to find mobs and a laser to shoot at them. We error if neither exists.
+if not modules.hasModule("plethora:laser") then error("Cannot find laser", 0) end
+if not modules.hasModule("plethora:sensor") then error("Cannot find entity sensor", 0) end
+
+-- Get overlay glasses
+local glasses = peripheral.find("plethora:glasses")
+if not glasses then
+    error("Must have overlay glasses connected", 0)
+end
+
+local canvas = glasses.canvas()
+if not canvas then
+    error("Failed to initialize canvas", 0)
+end
+
+-- We define a function which fires a laser towards an entity. This is a very naive implementation as it does not
+-- account for the entity moving between firing and impact. You could use the `motionX`, `motionY` and `motionZ` fields
+-- if you wish to add such functionality.
+local function fire(entity)
+    local x, y, z = entity.x, entity.y, entity.z
+    local pitch = -math.atan2(y, math.sqrt(x * x + z * z))
+    local yaw = math.atan2(-x, z)
+
+    modules.fire(math.deg(yaw), math.deg(pitch), 5)
+    print("Fired at entity: " .. entity.name)
+    sleep(0.2)
+end
+
+-- We build a lookup of mobs we wish to target, to avoid shooting non-hostile mobs.
+local mobNames = { "corruption_avatar", "Creeper", "Zombie", "Skeleton" }
+local mobLookup = {}
+for i = 1, #mobNames do
+    mobLookup[mobNames[i]] = true
+end
+
+local function updateDisplay()
+    canvas.clear()
+    local y = 10
+
+    for name, _ in pairs(mobLookup) do
+        canvas.addText({1, y}, name, 0xFFFFFF)
+        y = y + 10
+    end
+
+    -- Add buttons for removing entities and adding entities
+    canvas.addBox({1, y}, {100, 20}, 0xFF0000)
+    canvas.addText({5, y + 5}, "Remove Entity", 0xFFFFFF)
+
+    y = y + 30
+    canvas.addBox({1, y}, {100, 20}, 0x00FF00)
+    canvas.addText({5, y + 5}, "Add Entity", 0xFFFFFF)
+
+    y = y + 30
+    canvas.addBox({1, y}, {100, 20}, 0x0000FF)
+    canvas.addText({5, y + 5}, "Scroll Up", 0xFFFFFF)
+
+    y = y + 30
+    canvas.addBox({1, y}, {100, 20}, 0x0000FF)
+    canvas.addText({5, y + 5}, "Scroll Down", 0xFFFFFF)
+end
+
+-- Update the display initially
+updateDisplay()
+
+local function addEntity(name)
+    mobLookup[name] = true
+    updateDisplay()
+end
+
+local function removeEntity(name)
+    mobLookup[name] = nil
+    updateDisplay()
+end
+
+local function handleButtonClick(x, y)
+    -- Logic to determine which button was clicked based on the coordinates
+    if y >= 10 and y < 40 then
+        -- Remove entity button clicked
+        local entityName = next(mobLookup) -- Example logic to remove the first entity in the list
+        if entityName then
+            removeEntity(entityName)
+        end
+    elseif y >= 40 and y < 70 then
+        -- Add entity button clicked
+        addEntity("ExampleEntity")
+    elseif y >= 70 and y < 100 then
+        -- Scroll up button clicked
+        print("Scroll up")
+    elseif y >= 100 and y < 130 then
+        -- Scroll down button clicked
+        print("Scroll down")
+    end
+end
+
+-- We now sense the vicinity and prepare to fire at them.
+while true do
+    local mobs = modules.sense()
+
+    -- First we build up a list of all mobs that we care about.
+    local candidates = {}
+    for i = 1, #mobs do
+        local mob = mobs[i]
+        if mobLookup[mob.name] then
+            candidates[#candidates + 1] = mob
+        end
+    end
+
+    -- If we've got a mob then choose a random one and fire towards it. Otherwise, delay for a second before
+    -- rescanning.
+    if #candidates > 0 then
+        local mob = candidates[math.random(1, #candidates)]
+        fire(mob)
+    else
+        sleep(1)
+    end
+
+    -- Handle button clicks
+    local event, side, x, y = os.pullEvent("glasses_click")
+    handleButtonClick(x, y)
+end
