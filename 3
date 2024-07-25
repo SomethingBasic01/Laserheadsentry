@@ -1,0 +1,82 @@
+-- Find the neural interface
+local modules = peripheral.find("neuralInterface")
+if not modules then
+    error("Must have a neural interface", 0)
+end
+
+-- Ensure overlay glasses module is present
+if not modules.hasModule("plethora:glasses") then
+    error("Must have overlay glasses connected", 0)
+end
+
+-- Get the overlay glasses peripheral
+local glasses = peripheral.find("plethora:glasses")
+
+-- Initialize the canvas
+local canvas = glasses.canvas()
+
+-- Utility functions for buttons and firing
+local function createButton(text, x, y, width, height, color)
+    local box = canvas.addBox(x, y, width, height, color)
+    local label = canvas.addText({x + 2, y + 2}, text, 0xFFFFFF)
+    return {box = box, label = label}
+end
+
+local function fire(entity)
+    local x, y, z = entity.x, entity.y, entity.z
+    local pitch = -math.atan2(y, math.sqrt(x * x + z * z))
+    local yaw = math.atan2(-x, z)
+    modules.fire(math.deg(yaw), math.deg(pitch), 5)
+    sleep(0.2)
+end
+
+-- List of tracked entities
+local trackedEntities = {"Creeper", "Zombie", "Skeleton"}
+
+-- Add buttons for adding/removing entities and firing
+local buttons = {}
+table.insert(buttons, createButton("Add Entity", 5, 5, 100, 20, 0x00FF00))
+table.insert(buttons, createButton("Remove Entity", 5, 30, 100, 20, 0xFF0000))
+table.insert(buttons, createButton("Scroll Up", 5, 55, 100, 20, 0xFFFFFF))
+table.insert(buttons, createButton("Scroll Down", 5, 80, 100, 20, 0xFFFFFF))
+
+-- Function to check button clicks
+local function checkButtonClick(x, y)
+    for _, button in pairs(buttons) do
+        if x >= button.box.getX() and x <= button.box.getX() + button.box.getWidth() and
+           y >= button.box.getY() and y <= button.box.getY() + button.box.getHeight() then
+            return button.label.getText()
+        end
+    end
+    return nil
+end
+
+-- Main loop
+while true do
+    local event, side, xPos, yPos = os.pullEvent("glasses_click")
+    local buttonClicked = checkButtonClick(xPos, yPos)
+
+    if buttonClicked then
+        if buttonClicked == "Add Entity" then
+            -- Code to add entity (e.g., prompt user for entity name)
+        elseif buttonClicked == "Remove Entity" then
+            -- Code to remove entity (e.g., remove from list)
+        elseif buttonClicked == "Scroll Up" then
+            -- Code to scroll up the list
+        elseif buttonClicked == "Scroll Down" then
+            -- Code to scroll down the list
+        end
+    end
+
+    -- Continuously sense and fire at tracked entities
+    local mobs = modules.sense()
+    for i = 1, #mobs do
+        local mob = mobs[i]
+        if table.contains(trackedEntities, mob.name) then
+            fire(mob)
+            print("Fired at entity: " .. mob.name)
+        end
+    end
+
+    sleep(1)
+end
