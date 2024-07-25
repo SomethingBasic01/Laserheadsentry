@@ -1,0 +1,97 @@
+local modules = peripheral.find("neuralInterface")
+if not modules then
+    error("Must have a neural interface", 0)
+end
+
+if not modules.hasModule("plethora:laser") then error("Cannot find laser", 0) end
+if not modules.hasModule("plethora:sensor") then error("Cannot find entity sensor", 0) end
+if not modules.hasModule("plethora:glasses") then error("Must have overlay glasses", 0) end
+
+local canvas = modules.canvas2d()
+
+local trackedEntities = {"Creeper", "Zombie", "Skeleton"}
+local selectedIndex = 1
+
+local function fire(entity)
+    local x, y, z = entity.x, entity.y, entity.z
+    local pitch = -math.atan2(y, math.sqrt(x * x + z * z))
+    local yaw = math.atan2(-x, z)
+
+    modules.fire(math.deg(yaw), math.deg(pitch), 5)
+    sleep(0.2)
+end
+
+local function updateCanvas()
+    canvas.clear()
+    canvas.addBox(0, 0, 100, 200, 0x000000, 0.5)
+    canvas.addText(5, 5, "Tracked Entities:", 0xFFFFFF)
+    local y = 25
+    for i, entity in ipairs(trackedEntities) do
+        if i == selectedIndex then
+            canvas.addText(5, y, entity, 0xFF0000)
+        else
+            canvas.addText(5, y, entity, 0xFFFFFF)
+        end
+        y = y + 20
+    end
+    canvas.addText(5, y, "Add Entity", 0xFFFFFF)
+    canvas.addText(5, y + 20, "Scroll Up", 0xFFFFFF)
+    canvas.addText(5, y + 40, "Scroll Down", 0xFFFFFF)
+end
+
+local function handleGlassesClick(event)
+    if event[2] == "glasses_click" then
+        local x = event[3]
+        local y = event[4]
+
+        if y >= 25 and y < 25 + #trackedEntities * 20 then
+            local index = math.floor((y - 25) / 20) + 1
+            selectedIndex = index
+        elseif y >= 25 + #trackedEntities * 20 and y < 25 + (#trackedEntities + 1) * 20 then
+            print("Enter entity name to add:")
+            local entity = read()
+            table.insert(trackedEntities, entity)
+        elseif y >= 25 + (#trackedEntities + 1) * 20 and y < 25 + (#trackedEntities + 2) * 20 then
+            if selectedIndex > 1 then
+                selectedIndex = selectedIndex - 1
+            end
+        elseif y >= 25 + (#trackedEntities + 2) * 20 and y < 25 + (#trackedEntities + 3) * 20 then
+            if selectedIndex < #trackedEntities then
+                selectedIndex = selectedIndex + 1
+            end
+        end
+
+        updateCanvas()
+    end
+end
+
+updateCanvas()
+
+parallel.waitForAll(
+    function()
+        while true do
+            local event = {os.pullEvent()}
+            handleGlassesClick(event)
+        end
+    end,
+    function()
+        while true do
+            local mobs = modules.sense()
+            local candidates = {}
+            for _, mob in ipairs(mobs) do
+                for _, entityName in ipairs(trackedEntities) do
+                    if mob.name == entityName then
+                        table.insert(candidates, mob)
+                        break
+                    end
+                end
+            end
+            if #candidates > 0 then
+                local mob = candidates[math.random(1, #candidates)]
+                fire(mob)
+            else
+                sleep(1)
+            end
+        end
+    end
+)
