@@ -1,0 +1,82 @@
+-- Ensure that the neural interface and its required modules are present
+local neural = peripheral.find("neuralInterface")
+if not neural then
+    error("Must have a neural interface", 0)
+end
+
+-- Check for required modules
+if not neural.hasModule("plethora:laser") then
+    error("Cannot find laser module", 0)
+end
+if not neural.hasModule("plethora:sensor") then
+    error("Cannot find entity sensor module", 0)
+end
+
+-- Initialize overlay glasses
+local glasses = peripheral.find("plethora:glasses")
+if not glasses then
+    error("Must have overlay glasses connected", 0)
+end
+
+local canvas = glasses.canvas2d()
+if not canvas then
+    error("Failed to initialize canvas", 0)
+end
+
+-- Function to fire at an entity
+local function fire(entity)
+    local x, y, z = entity.x, entity.y, entity.z
+    local pitch = -math.atan2(y, math.sqrt(x * x + z * z))
+    local yaw = math.atan2(-x, z)
+
+    neural.fire(math.deg(yaw), math.deg(pitch), 5)
+    sleep(0.2)
+end
+
+-- Setup list of target entities
+local mobNames = { "Creeper", "Zombie", "Skeleton" }
+local mobLookup = {}
+for i = 1, #mobNames do
+    mobLookup[mobNames[i]] = true
+end
+
+-- Setup UI
+canvas.clear()
+local buttons = {}
+local startY = 10
+
+-- Add "Add Entity" button
+table.insert(buttons, canvas.addText({5, startY}, "Add Entity", 0xFFFFFF))
+
+-- Add Scroll buttons
+table.insert(buttons, canvas.addBox({5, startY + 20}, 50, 20, 0xFFFFFF))
+table.insert(buttons, canvas.addText({5, startY + 25}, "Scroll Up", 0xFFFFFF))
+table.insert(buttons, canvas.addBox({5, startY + 50}, 50, 20, 0xFFFFFF))
+table.insert(buttons, canvas.addText({5, startY + 55}, "Scroll Down", 0xFFFFFF))
+
+-- Add entity names below scroll buttons
+local mobStartY = startY + 80
+for i, mobName in ipairs(mobNames) do
+    table.insert(buttons, canvas.addText({5, mobStartY + (i - 1) * 20}, mobName, 0xFFFFFF))
+end
+
+-- Main loop
+while true do
+    local mobs = neural.sense()
+    local candidates = {}
+    for i = 1, #mobs do
+        local mob = mobs[i]
+        if mobLookup[mob.name] then
+            table.insert(candidates, mob)
+        end
+    end
+
+    if #candidates > 0 then
+        local mob = candidates[math.random(1, #candidates)]
+        fire(mob)
+        print("Fired at entity: " .. mob.name)
+    else
+        print("No target found")
+    end
+    sleep(1)
+end
