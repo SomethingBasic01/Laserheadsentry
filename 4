@@ -1,1 +1,72 @@
+local modules = peripheral.find("neuralInterface")
+if not modules then
+    error("Must have a neural interface", 0)
+end
 
+-- Check for necessary modules
+if not modules.hasModule("plethora:laser") then error("Cannot find laser", 0) end
+if not modules.hasModule("plethora:sensor") then error("Cannot find entity sensor", 0) end
+if not modules.hasModule("plethora:glasses") then error("Cannot find overlay glasses", 0) end
+
+local glasses = modules.getModule("plethora:glasses") -- Ensure we get the correct module here
+local canvas = glasses.canvas2d() -- Initialize the 2D canvas
+
+-- Validate the canvas
+if not canvas then error("Failed to get canvas", 0) end
+
+-- Function to fire at an entity
+local function fire(entity)
+    local x, y, z = entity.x, entity.y, entity.z
+    local pitch = -math.atan2(y, math.sqrt(x * x + z * z))
+    local yaw = math.atan2(-x, z)
+
+    modules.fire(math.deg(yaw), math.deg(pitch), 5)
+    sleep(0.2)
+end
+
+-- Initialize entity list and GUI components
+local mobNames = { "Creeper", "Zombie", "Skeleton" }
+local mobLookup = {}
+for i = 1, #mobNames do
+    mobLookup[mobNames[i]] = true
+end
+
+local trackedEntities = { "Creeper", "Zombie" }
+
+local function renderMenu()
+    canvas.clear()
+    local y = 70 -- Moved down to give space for future buttons
+    for i, entity in ipairs(trackedEntities) do
+        canvas.addText({10, y}, entity, 0xFFFFFF)
+        y = y + 10
+    end
+
+    local buttons = {
+        {"Add Entity", 10, 10, function()
+            -- Add entity logic here
+        end},
+        {"Remove Entity", 10, 30, function()
+            -- Remove entity logic here
+        end},
+        {"Scroll Up", 10, 50, function()
+            -- Scroll up logic here
+        end},
+        {"Scroll Down", 10, y + 10, function()
+            -- Scroll down logic here
+        end}
+    }
+
+    for _, button in ipairs(buttons) do
+        local text, x, y, callback = unpack(button)
+        local box = canvas.addBox({x, y, 100, 20}, 0xFF0000, 0.5)
+        local label = canvas.addText({x + 5, y + 5}, text, 0xFFFFFF)
+        box.setOnClick(callback)
+    end
+end
+
+renderMenu()
+
+while true do
+    local event, side, xPos, yPos = os.pullEvent("mouse_click")
+    -- Handle button click logic here
+end
