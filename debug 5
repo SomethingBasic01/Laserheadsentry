@@ -11,7 +11,7 @@ if not neuralInterface.hasModule("plethora:glasses") then error("Cannot find ove
 
 -- Initialize the canvas
 local glasses = peripheral.find("plethora:glasses")
-local canvas = glasses.canvas()
+local canvas = plethora:glasses.canvas()
 if not canvas then
     error("Failed to initialize canvas", 0)
 end
