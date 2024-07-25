@@ -1,0 +1,93 @@
+-- Detect peripherals
+local neuralInterface = peripheral.find("neuralInterface")
+if not neuralInterface then
+    error("Must have a neural interface", 0)
+end
+
+-- Check for required modules
+if not neuralInterface.hasModule("plethora:laser") then error("Cannot find laser", 0) end
+if not neuralInterface.hasModule("plethora:sensor") then error("Cannot find entity sensor", 0) end
+if not neuralInterface.hasModule("plethora:glasses") then error("Cannot find overlay glasses", 0) end
+
+-- Initialize the canvas
+local glasses = peripheral.find("plethora:glasses")
+local canvas = glasses.canvas()
+if not canvas then
+    error("Failed to initialize canvas", 0)
+end
+
+-- Function to fire the laser at an entity
+local function fire(entity)
+    local x, y, z = entity.x, entity.y, entity.z
+    local pitch = -math.atan2(y, math.sqrt(x * x + z * z))
+    local yaw = math.atan2(-x, z)
+
+    neuralInterface.fire(math.deg(yaw), math.deg(pitch), 5)
+    sleep(0.2)
+end
+
+-- Entity management
+local entities = { "Creeper", "Zombie", "Skeleton" }
+local trackedEntities = {}
+for _, entity in ipairs(entities) do
+    trackedEntities[entity] = true
+end
+
+-- GUI setup
+local buttonHeight = 15
+local buttonWidth = 80
+local padding = 5
+local yPos = 5
+
+-- Helper function to add buttons
+local function addButton(label, callback)
+    local button = canvas.addBox(10, yPos, buttonWidth, buttonHeight, 0x00000080)
+    button.addText(5, 5, label, 0xFFFFFFFF)
+    button.onClick(callback)
+    yPos = yPos + buttonHeight + padding
+    return button
+end
+
+-- Add entity button
+local addEntityButton = addButton("Add Entity", function()
+    print("Enter entity name to add:")
+    local entityName = read()
+    trackedEntities[entityName] = true
+    print(entityName .. " added to tracked entities.")
+end)
+
+-- Remove entity button
+local removeEntityButton = addButton("Remove Entity", function()
+    print("Enter entity name to remove:")
+    local entityName = read()
+    trackedEntities[entityName] = nil
+    print(entityName .. " removed from tracked entities.")
+end)
+
+-- Scroll buttons
+local scrollUpButton = addButton("Scroll Up", function()
+    -- Handle scrolling up
+end)
+
+local scrollDownButton = addButton("Scroll Down", function()
+    -- Handle scrolling down
+end)
+
+-- Function to list tracked entities
+local function listTrackedEntities()
+    for entity in pairs(trackedEntities) do
+        print(entity)
+    end
+end
+
+-- Main loop to detect and fire at entities
+while true do
+    local mobs = neuralInterface.sense()
+    for _, mob in ipairs(mobs) do
+        if trackedEntities[mob.name] then
+            fire(mob)
+            print("Fired at entity: " .. mob.name)
+        end
+    end
+    sleep(1)
+end
