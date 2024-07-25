@@ -1,0 +1,138 @@
+local modules = peripheral.find("neuralInterface")
+if not modules then
+    error("Must have a neural interface", 0)
+end
+
+-- Ensure necessary modules are present
+if not modules.hasModule("plethora:laser") then error("Cannot find laser", 0) end
+if not modules.hasModule("plethora:sensor") then error("Cannot find entity sensor", 0) end
+if not modules.hasModule("plethora:glasses") then error("Cannot find overlay glasses", 0) end
+
+-- Initialize glasses
+local glasses = modules.getModule("plethora:glasses")
+if not glasses then
+    error("Overlay glasses module not found", 0)
+end
+
+local canvas = glasses.canvas()
+if not canvas then
+    error("Failed to initialize canvas", 0)
+end
+
+-- Function to fire at an entity
+local function fire(entity)
+    local x, y, z = entity.x, entity.y, entity.z
+    local pitch = -math.atan2(y, math.sqrt(x * x + z * z))
+    local yaw = math.atan2(-x, z)
+
+    modules.fire(math.deg(yaw), math.deg(pitch), 5)
+    print("Fired at entity: " .. entity.name)
+    sleep(0.2)
+end
+
+-- Mob management
+local mobNames = { "Creeper", "Zombie", "Skeleton" }
+local mobLookup = {}
+for i = 1, #mobNames do
+    mobLookup[mobNames[i]] = true
+end
+
+-- UI Elements
+local buttons = {}
+local buttonHeight = 10
+local entityListOffset = 4
+
+local function addButton(text, x, y, w, h, action)
+    local button = {
+        text = text,
+        x = x,
+        y = y,
+        width = w,
+        height = h,
+        action = action
+    }
+    table.insert(buttons, button)
+end
+
+local function drawButtons()
+    canvas.clear()
+    for i, button in ipairs(buttons) do
+        local box = canvas.addBox(button.x, button.y, button.width, button.height, 0xFFFFFF, 0.5)
+        local label = canvas.addText({ button.x + 2, button.y + 2 }, button.text, 0x000000)
+        button.box = box
+        button.label = label
+    end
+end
+
+local function checkClick(x, y)
+    for _, button in ipairs(buttons) do
+        if x >= button.x and x <= button.x + button.width and y >= button.y and y <= button.y + button.height then
+            button.action()
+            break
+        end
+    end
+end
+
+-- Button actions
+local function removeEntity()
+    if #mobNames > 0 then
+        table.remove(mobNames, 1)
+        mobLookup = {}
+        for i = 1, #mobNames do
+            mobLookup[mobNames[i]] = true
+        end
+        drawButtons()
+    end
+end
+
+local function addEntity()
+    local entityName = read()
+    table.insert(mobNames, entityName)
+    mobLookup[entityName] = true
+    drawButtons()
+end
+
+-- Setup UI
+addButton("Remove Entity", 10, 10, 100, buttonHeight, removeEntity)
+addButton("Add Entity", 10, 30, 100, buttonHeight, addEntity)
+addButton("Scroll Up", 10, 50, 100, buttonHeight, function() entityListOffset = entityListOffset - 1 drawButtons() end)
+addButton("Scroll Down", 10, 70, 100, buttonHeight, function() entityListOffset = entityListOffset + 1 drawButtons() end)
+
+local function drawEntityList()
+    local y = 90
+    for i = entityListOffset, math.min(#mobNames, entityListOffset + 5) do
+        canvas.addText({10, y}, mobNames[i], 0xFFFFFF)
+        y = y + buttonHeight + 5
+    end
+end
+
+drawButtons()
+drawEntityList()
+
+-- Event loop
+while true do
+    local event, p1, p2, p3 = os.pullEvent()
+    if event == "glasses_click" then
+        local x, y = p2, p3
+        checkClick(x, y)
+    elseif event == "glasses_up" then
+        -- Handle drag and drop or other mouse up events
+    end
+    
+    -- Entity scanning and firing logic
+    local mobs = modules.sense()
+    local candidates = {}
+    for i = 1, #mobs do
+        local mob = mobs[i]
+        if mobLookup[mob.name] then
+            candidates[#candidates + 1] = mob
+        end
+    end
+    
+    if #candidates > 0 then
+        local mob = candidates[math.random(1, #candidates)]
+        fire(mob)
+    else
+        sleep(1)
+    end
+end
