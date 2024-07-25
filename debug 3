@@ -1,0 +1,100 @@
+local modules = peripheral.find("neuralInterface")
+if not modules then
+    error("Must have a neural interface", 0)
+end
+
+-- Ensure we have the necessary modules
+if not modules.hasModule("plethora:laser") then error("Cannot find laser", 0) end
+if not modules.hasModule("plethora:sensor") then error("Cannot find entity sensor", 0) end
+if not modules.hasModule("plethora:glasses") then error("Cannot find overlay glasses", 0) end
+
+-- Initialize canvas
+local canvas = modules.canvas()
+canvas.clear()
+
+-- Function to add text on the overlay glasses
+local function addText(id, text, x, y, color)
+    local textObj = canvas.addText({x=x, y=y}, text)
+    textObj.setColor(color)
+    return textObj
+end
+
+-- Function to create a button on the overlay glasses
+local function createButton(id, text, x, y, width, height, bgColor, textColor)
+    local box = canvas.addBox(x, y, width, height, bgColor)
+    local label = addText(id, text, x + 2, y + 2, textColor)
+    return {box=box, label=label}
+end
+
+-- Initialize entity list
+local entityList = {"Creeper", "Zombie", "Skeleton"}
+local trackedEntities = {}
+
+-- Display buttons
+local buttonRemove = createButton("removeEntity", "Remove Entity", 5, 5, 100, 20, 0xFF0000, 0xFFFFFF)
+local buttonAdd = createButton("addEntity", "Add Entity", 5, 30, 100, 20, 0x0000FF, 0xFFFFFF)
+local buttonScrollUp = createButton("scrollUp", "Scroll Up", 5, 55, 100, 20, 0x00FF00, 0xFFFFFF)
+local buttonScrollDown = createButton("scrollDown", "Scroll Down", 5, 80, 100, 20, 0x00FF00, 0xFFFFFF)
+
+-- Function to update the displayed entity list
+local function updateEntityList()
+    -- Clear previous text objects
+    canvas.clear()
+    -- Redisplay buttons
+    buttonRemove = createButton("removeEntity", "Remove Entity", 5, 5, 100, 20, 0xFF0000, 0xFFFFFF)
+    buttonAdd = createButton("addEntity", "Add Entity", 5, 30, 100, 20, 0x0000FF, 0xFFFFFF)
+    buttonScrollUp = createButton("scrollUp", "Scroll Up", 5, 55, 100, 20, 0x00FF00, 0xFFFFFF)
+    buttonScrollDown = createButton("scrollDown", "Scroll Down", 5, 80, 100, 20, 0x00FF00, 0xFFFFFF)
+    -- Display entities
+    for i, entity in ipairs(entityList) do
+        addText("entity"..i, entity, 5, 105 + (i - 1) * 15, 0xFFFFFF)
+    end
+end
+
+-- Initial display of the entity list
+updateEntityList()
+
+-- Function to fire at tracked entities
+local function fireAtEntities()
+    local mobs = modules.sense()
+    for _, mob in pairs(mobs) do
+        if trackedEntities[mob.name] then
+            local x, y, z = mob.x, mob.y, mob.z
+            local pitch = -math.atan2(y, math.sqrt(x * x + z * z))
+            local yaw = math.atan2(-x, z)
+            modules.fire(math.deg(yaw), math.deg(pitch), 5)
+            print("Fired at entity: " .. mob.name)
+            sleep(0.2)
+        end
+    end
+end
+
+-- Main loop
+while true do
+    local event, p1, p2, p3 = os.pullEvent()
+    if event == "glasses_click" then
+        local x, y = p2, p3
+        if x >= 5 and x <= 105 and y >= 5 and y <= 25 then
+            -- Remove entity
+            if #entityList > 0 then
+                table.remove(entityList, 1)
+                updateEntityList()
+            end
+        elseif x >= 5 and x <= 105 and y >= 30 and y <= 50 then
+            -- Add entity
+            local entity = read()
+            table.insert(entityList, entity)
+            trackedEntities[entity] = true
+            updateEntityList()
+        elseif x >= 5 and x <= 105 and y >= 55 and y <= 75 then
+            -- Scroll up
+            -- Logic for scrolling up the entity list
+        elseif x >= 5 and x <= 105 and y >= 80 and y <= 100 then
+            -- Scroll down
+            -- Logic for scrolling down the entity list
+        end
+    end
+
+    fireAtEntities()
+    sleep(1)
+end
